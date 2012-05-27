@@ -153,10 +153,10 @@ if (!Array.prototype.indexOf) {
 			function input(callback) {
 				var outputDisplay = document.getElementById('output-display');
 				outputDisplay.focus();
-				outputDisplay.onkeydown = function(event) {
+				outputDisplay.onkeypress = function(event) {
 					event.preventDefault();
-					outputDisplay.onkeydown = function() { };					
-					callback(event.keyCode);
+					outputDisplay.onkeypress = function() { };					
+					callback(event.charCode);
 				}
 			}
 
