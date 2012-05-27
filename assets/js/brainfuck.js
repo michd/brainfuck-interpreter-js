@@ -37,6 +37,7 @@ if (!Array.prototype.indexOf) {
 }
 
 (function() {
+	var g_processCnt = 0;
 	//closure that just takes the brainfuck code and takes care of it from there
 	//possibly unnecessary 
 		
@@ -58,7 +59,7 @@ if (!Array.prototype.indexOf) {
 	//Takes care of:
 	// Moving data pointer, incrementing/decrementing value at data location,
 	// Reading, writing data		
-	var workingMemory = function(byteCount) {
+	var workingMemory = function(byteCount) {		
 		// Array working acting as memory bank
 		var ram = [];
 		var ramAllFormats = []; //only populated and updated when the debug function 
@@ -160,7 +161,7 @@ if (!Array.prototype.indexOf) {
 								"hex": '0x' + ((ram[j] < 16) ? '0' : '') + 
 									ram[j].toString(16).toUpperCase(),
 								"bin": '0b' + 
-									new Array(8 - ram[j].toString(2).length).join('0') + 
+									new Array(9 - ram[j].toString(2).length).join('0') + 
 									ram[j].toString(2),
 								"ascii": String.fromCharCode(ram[j])
 							};
@@ -181,8 +182,8 @@ if (!Array.prototype.indexOf) {
 
 		// Prints the ascii character for a given byte
 		function print(outputByte) {
-			outputDisplay.value += 
-				String.fromCharCode(outputByte);
+			outputDisplay.value += String.fromCharCode(outputByte);
+
 		}
 
 		// Waits for keyboard input,
@@ -201,27 +202,33 @@ if (!Array.prototype.indexOf) {
 			outputDisplay.onkeypress = function(event) { };
 		}
 
+		function resetOutput() {
+			outputDisplay.value = '';
+		}
+
 		// Interface
 		return {
 			"print": function(outputByte) { print(outputByte); },					
 			"input": function(callback) { input(callback); },
-			"resetInput": function() { resetInput(); }
+			"resetInput": function() { resetInput(); },
+			"resetOutput": function() { resetOutput(); }
 		}
 	};
 
 	// Executes the program, keeps track of program pointer and sends data around
 	var program = function(code, ram, ui) {
+		var instructions = code;		
+		var pointerAddress = 0; //program pointer
+		var isFinished = false;
 		
-		var instructions = code;
-		//program pointer
-		var pointerAddress = 0;
-		
+		ui.resetOutput(); //clear output
 
 		//Kills program execution in case of an error
 		//Displays an alert message and resets the program pointer to 0
 		function die(message) {
 			alert(message);
-			pointerAddress = 0;				
+			pointerAddress = 0;		
+			isFinished = true;		
 		}
 
 		//Go to the next step in the program and execute if not at end
@@ -236,6 +243,7 @@ if (!Array.prototype.indexOf) {
 			}
 			else {
 				window.console.log('Brainfuck program finished.');
+				isFinished = true;
 			}
 		}
 
@@ -316,58 +324,60 @@ if (!Array.prototype.indexOf) {
 
 		//Executes the command where the program pointer is currently pointing
 		function executeCommand(halt) {
-			//if halt is set and true, pass no next step will be executed after 
-			//program pointer advancing			
-			halt = (typeof halt != 'undefined') && halt;
-			switch(instructions[pointerAddress]) {
-				case ">": //Increment data pointer
-					ram.incPointer();
-					incrementPointer(halt);
-					break;
-				case "<": //Decrement data pointer
-					ram.decPointer();
-					incrementPointer(halt);
-					break;
-				case "+": //Increment value at data pointer
-					ram.incByte();
-					incrementPointer(halt);
-					break;
-				case "-": //Decrement value at data pointer
-					ram.decByte();
-					incrementPointer(halt);
-					break;
-				case ".": //output the character the current byte represents
-					ui.print(ram.readByte());
-					incrementPointer(halt);
-					break;
-				case ",": //Take input and store in current data cell
-					//ram.writeByte as callback function since input will be async
-					ui.input(function(inputByte) {
-						ram.writeByte(inputByte);
+			if( ! isFinished) {
+				//if halt is set and true, pass no next step will be executed after 
+				//program pointer advancing			
+				halt = (typeof halt != 'undefined') && halt;
+				switch(instructions[pointerAddress]) {
+					case ">": //Increment data pointer
+						ram.incPointer();
 						incrementPointer(halt);
-					});
-					break;
-				case "[": //if current byte == 0, jump to command after matching "]"
-					//otherwise, go to next command
-					if(ram.readByte() === 0x00) {
-						jumpToClosingBracket(halt);
-					}
-					else {
+						break;
+					case "<": //Decrement data pointer
+						ram.decPointer();
 						incrementPointer(halt);
-					}
-					break;
-				case "]": //if current byte != 0, jump to command after matching "["
-					//otherwise, go to next command
-					if(ram.readByte() !== 0x00) {
-						jumpToOpeningBracket(halt);
-					}
-					else {
+						break;
+					case "+": //Increment value at data pointer
+						ram.incByte();
 						incrementPointer(halt);
-					}
-					break;
-				default: //Do nothing, just advance program. 
-					//(Occurs when end is reached)
-					incrementPointer(halt);					
+						break;
+					case "-": //Decrement value at data pointer
+						ram.decByte();
+						incrementPointer(halt);
+						break;
+					case ".": //output the character the current byte represents
+						ui.print(ram.readByte());
+						incrementPointer(halt);
+						break;
+					case ",": //Take input and store in current data cell
+						//ram.writeByte as callback function since input will be async
+						ui.input(function(inputByte) {
+							ram.writeByte(inputByte);
+							incrementPointer(halt);
+						});
+						break;
+					case "[": //if current byte == 0, jump to command after matching "]"
+						//otherwise, go to next command
+						if(ram.readByte() === 0x00) {
+							jumpToClosingBracket(halt);
+						}
+						else {
+							incrementPointer(halt);
+						}
+						break;
+					case "]": //if current byte != 0, jump to command after matching "["
+						//otherwise, go to next command
+						if(ram.readByte() !== 0x00) {
+							jumpToOpeningBracket(halt);
+						}
+						else {
+							incrementPointer(halt);
+						}
+						break;
+					default: //Do nothing, just advance program. 
+						//(Occurs when end is reached)
+						incrementPointer(halt);					
+				}
 			}
 		}
 
@@ -379,6 +389,10 @@ if (!Array.prototype.indexOf) {
 			"step": function() {
 				executeCommand(true);
 			},
+			"stop": function() {
+				executeCommand(true);				
+			},		
+			"isFinished": function() { return isFinished; },	
 			"debug":  {
 				"getPointerAddress": function() { return pointerAddress; },
 				"getCleanProgram": function() { return instructions; },
@@ -454,13 +468,14 @@ if (!Array.prototype.indexOf) {
 	function initializeProcess() {
 		if (process != null) {
 			process.stop();
+			process = null;
 		}
 		clearInterval(stepper);
 		clearInterval(debugInterval);		
-		process = new program(
+		process = program(
 			cleanCode(document.getElementById('brainfuck-input').value), 
-			new workingMemory(MEMORY_SIZE), //Set desired number of bytes in memory here
-			new userInterface()
+			workingMemory(MEMORY_SIZE), //Set desired number of bytes in memory here
+			userInterface()
 		);
 		
 		debugInterval = setInterval(function() {
@@ -482,7 +497,7 @@ if (!Array.prototype.indexOf) {
 	
 	document.getElementById('brainfuck-run').onclick = function(event) {
 		event.preventDefault();		
-		if(process == null) {
+		if(process == null || process.isFinished()) {
 			initializeProcess();
 		}
 		process.run();			
@@ -493,7 +508,10 @@ if (!Array.prototype.indexOf) {
 		if(process == null) {
 			initializeProcess();
 		}
-		process.step();
+		if( ! process.isFinished()) {
+			process.step();	
+		}
+		
 	}
 
 	document.getElementById('brainfuck-step-auto').onclick = function(event) {
@@ -516,6 +534,7 @@ if (!Array.prototype.indexOf) {
 	document.getElementById('brainfuck-stop').onclick = function(event) {
 		event.preventDefault();
 		clearInterval(stepper);
+		process.stop();
 	}
 
 })();

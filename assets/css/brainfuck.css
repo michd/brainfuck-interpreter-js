@@ -44,12 +44,14 @@
 	color: #FFF;
 	font-weight: bold;
 	text-align: left;
+	font-family: 'Consolas', 'monaco', monospace;
 }
 #memory-table td {
 	padding: 3px;
 	border: solid 1px #AAA;
 	border-width: 0 1px 1px 0;
 	text-align: center;
+	font-family: 'Consolas', 'monaco', monospace;
 }
 #memory-table .current-address td {
 	background-color: #FFA;	
