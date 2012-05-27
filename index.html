@@ -13,13 +13,47 @@
 		<fieldset>
 			<legend>Brainfuck input</legend>
 			<textarea name="brainfuck_input" id="brainfuck-input"></textarea>
-			<button type="submit" id="brainfuck-submit">Run</button><button id="brainfuck-clear">Clear</button>
+			<div>
+				<button id="brainfuck-clear">Clear</button>
+			</div>	
+			<div>
+				<button id="brainfuck-run">Run</button>
+				<button id="brainfuck-step">Step</button>
+				<button id="brainfuck-step-auto">Step auto:</button>
+				<input title="Interval (ms)" type="number" placeholder="interval (ms)" value="100" id="brainfuck-step-interval">
+				<button id="brainfuck-stop">Stop</button>	
+				<!--<button id="brainfuck-init">Initialize</button>-->
+				<!--Commented out because that one's a bit broken -->
+			</div>
+			
+			
+		</fieldset>
+		<fieldset>
+			<legend>Execution</legend>
+			<output>
+				<span id="program-position"></span>
+			</output>
 		</fieldset>
 	</form>
 	<h2>Program output</h2>
+
 	<textarea id="output-display"></textarea>
+	<table id="memory-table">
+		<thead>
+			<th></th>
+			<th>Dec</th>
+			<th>Hex</th>
+			<th>Bin</th>
+			<th>ASCII</th>
+		</thead>
+		<tbody>
+		</tbody>
+	</table>
+
+	
 
 	<script type="text/javascript" src="assets/js/brainfuck.js"></script>
+	<div class="clear"></div>
 	<footer>
 		Written by <a href="http://twitter.com/MICHhimself">Michael Duerinckx</a> - <a href="https://github.com/michd/brainfuck-interpreter-js">Fork this on Github</a>
 	</footer>

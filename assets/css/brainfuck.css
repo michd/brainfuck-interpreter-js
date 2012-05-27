@@ -11,8 +11,10 @@
 }
 #output-display {
 	display: block;
-	width: 80ch;
-	height: 24em;
+	float: left;
+	margin-right: 25px;
+	width: 566px;
+	height: 288px;
 	padding: 1em 1ch;
 	font-size: 12px;
 	line-height:12px;
@@ -20,4 +22,38 @@
 	font-family: 'Consolas', 'monaco', monospace;
 	color: #FFF;
 	background-color: #000;
+}
+
+#program-position {
+	color: #444;
+}
+.current-instruction {
+	font-weight: bold;
+	color: #050;
+	background-color: #AFA;
+}
+#memory-table {
+	float: left;
+	width: 350px;
+	border-spacing: 0;	
+	border-left: solid 1px #AAA;
+}
+#memory-table th {
+	padding: 3px;
+	background-color: #000;
+	color: #FFF;
+	font-weight: bold;
+	text-align: left;
+}
+#memory-table td {
+	padding: 3px;
+	border: solid 1px #AAA;
+	border-width: 0 1px 1px 0;
+	text-align: center;
+}
+#memory-table .current-address td {
+	background-color: #FFA;	
+}
+.clear {
+	clear:both;
 }
