@@ -1,0 +1,23 @@
+/* brainfuck.css */
+
+#brainfuck-input {
+	display: block;
+	width: 100%;
+	height: 8em;
+	font-size: 12px;
+	line-height:12px;
+	font-weight: normal;
+	font-family: 'Consolas', 'monaco', monospace;
+}
+#output-display {
+	display: block;
+	width: 80ch;
+	height: 24em;
+	padding: 1em 1ch;
+	font-size: 12px;
+	line-height:12px;
+	font-weight: normal;
+	font-family: 'Consolas', 'monaco', monospace;
+	color: #FFF;
+	background-color: #000;
+}
