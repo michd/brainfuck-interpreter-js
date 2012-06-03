@@ -8,11 +8,15 @@
 </head>
 
 <body>
-	<h1>JavaScript Brainfuck interpreter</h1>
-	<form action="" method="post" id="input-form">
-		<fieldset>
-			<legend>Brainfuck input</legend>
-			<textarea name="brainfuck_input" id="brainfuck-input">+++++ +++++             initialize counter (cell #0) to 10
+	<header>
+		<h1>Brainfuck interpreter</h1>
+	</header>
+	<div class="container">
+	
+		<form action="" method="post" id="input-form">
+			<fieldset>
+				<legend>Brainfuck input</legend>
+				<textarea name="brainfuck_input" id="brainfuck-input">+++++ +++++             initialize counter (cell #0) to 10
 [                       use loop to set the next four cells to 70/100/30/10
     &gt; +++++ ++              add  7 to cell #1
     &gt; +++++ +++++           add 10 to cell #2 
@@ -33,41 +37,49 @@
 ----- --- .             print 'd'
 &gt; + .                   print '!'
 &gt; .                     print '\n'</textarea>
-			<div>
-				<button id="brainfuck-clear">Clear</button>
-			</div>	
-			<div>
-				<button id="brainfuck-run">Run</button>
-				<button id="brainfuck-step">Step</button>
-				<button id="brainfuck-step-auto">Step auto:</button>
-				<input title="Interval (ms)" type="number" placeholder="interval (ms)" value="100" id="brainfuck-step-interval">
-				<button id="brainfuck-stop">Stop</button>	
-				<button id="brainfuck-init">Initialize</button>				
-			</div>
-			
-			
-		</fieldset>
-		<fieldset>
-			<legend>Execution</legend>
-			<output>
-				<span id="program-position"></span>
-			</output>
-		</fieldset>
-	</form>
-	<h2>Program output</h2>
+				<div>
+					<button id="brainfuck-clear">Clear</button>
+				</div>	
+				<div>
+					<button id="brainfuck-run">Run</button>
+					<button id="brainfuck-step">Step</button>
+					<button id="brainfuck-step-auto">Step auto:</button>
+					<input title="Interval (ms)" type="number" placeholder="interval (ms)" value="100" id="brainfuck-step-interval">
+					<button id="brainfuck-stop">Stop</button>	
+					<button id="brainfuck-init">Initialize</button>				
+				</div>
+				
+				
+			</fieldset>
+			<fieldset>
+				<legend>Execution</legend>
+				<output>
+					<span id="program-position"></span>
+				</output>
+			</fieldset>
+		</form>
+		<form action="" method="post">
+			<fieldset>
+				<legend>Program output</legend>
 
-	<textarea id="output-display"></textarea>
-	<table id="memory-table">
-		<thead>
-			<th></th>
-			<th>Dec</th>
-			<th>Hex</th>
-			<th>Bin</th>
-			<th>ASCII</th>
-		</thead>
-		<tbody>
-		</tbody>
-	</table>
+				<textarea id="output-display"></textarea>
+				<aside>
+					<h2>Memory view</h2>
+					<table id="memory-table">
+						<thead>
+							<th></th>
+							<th>Dec</th>
+							<th>Hex</th>
+							<th>Bin</th>
+							<th>ASCII</th>
+						</thead>
+						<tbody>
+						</tbody>
+					</table>
+				</aside>
+			</fieldset>
+	</form>
+	</div>
 
 	
 
