@@ -19,7 +19,14 @@ You can stop auto-stepping by clicking 'Stop'
 Re-initialize the program by clicking 'Initialize'
 
 
+## Latest upgrades ##
 
-## Planned features ##
- - Better design
- - Suggest some!
+You can now run infinite loops with the run button. Automatic throttling has been added. This works by delaying execution for 5ms every 1000 instructions executed. You can change how frequently the delay occurs by changing THROTTLE_THRESHOLD to another value.
+
+Memory size is now set to 512 Bytes.
+
+Improved functionality of the Stop button, added Pause button.
+
+Major rework of the workings of 'program'; now works with statuses which provide better control.
+
+A bit of design work has been undertaken to make it look less 'lazy'.

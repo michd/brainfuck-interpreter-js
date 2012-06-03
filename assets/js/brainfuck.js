@@ -64,12 +64,17 @@ if (!Array.prototype.indexOf) {
 		var ram = [];
 		var ramAllFormats = []; //only populated and updated when the debug function 
 		//requests asks for it
-		for (var i = 0; i < byteCount; i += 1) {
-			ram[i] = 0x00;
-		}
+		
+		var pointerAddress = 0;
 
-		//current address of the pointer
-		var pointerAddress = 0; 
+		function initialize() {
+			for (var i = 0; i < byteCount; i += 1) {
+				ram[i] = 0x00;
+			}
+
+			//current address of the pointer
+			pointerAddress = 0;	 	
+		}
 
 		//moves pointer to the right, reverting to 0 if end is reached
 		function incrementPointer() {
@@ -130,6 +135,8 @@ if (!Array.prototype.indexOf) {
 			return ram[pointerAddress];
 		}
 
+		initialize();
+
 		//Interface
 		return {
 			"incPointer": function() { incrementPointer(); },
@@ -138,6 +145,7 @@ if (!Array.prototype.indexOf) {
 			"decByte": function() { decrementByte(); },
 			"writeByte": function(inputByte) { writeByte(inputByte); },
 			"readByte": function() { return readByte(); },
+			"reset": function() { initialize(); },
 			"debug": {
 				"dumpMemory": function() {
 					return ram;
@@ -217,33 +225,44 @@ if (!Array.prototype.indexOf) {
 
 	// Executes the program, keeps track of program pointer and sends data around
 	var program = function(code, ram, ui) {
+		var STATUSES = {
+			'RUNNING': 'running',
+			'STEPPING': 'stepping',
+			'PAUSED': 'paused',
+			'STOPPED': 'stopped',
+			'READY': 'ready'
+		};
+
+		var status = STATUSES['READY'];
+
+		var stepDelay = 0;
+		var stepTimeout;
+
 		var instructions = code;		
 		var pointerAddress = 0; //program pointer
-		var isFinished = false;
+
+		var throttleInstructionCnt = 0;
+		var throttleTimeout;
+
+		var THROTTLE_THRESHOLD = 1000;
+
 		
 		ui.resetOutput(); //clear output
 
 		//Kills program execution in case of an error
 		//Displays an alert message and resets the program pointer to 0
 		function die(message) {
-			alert(message);
-			pointerAddress = 0;		
-			isFinished = true;		
+			stop();
+			alert(message);		
 		}
 
 		//Go to the next step in the program and execute if not at end
 		//if halt is set and true, don't run executeCommand
-		function incrementPointer(halt) {
-			halt = (typeof halt != 'undefined') && halt;
+		function incrementPointer() {			
 			pointerAddress += 1;
-			if(pointerAddress < instructions.length) {
-				if ( ! halt) {
-					executeCommand();
-				}
-			}
-			else {
+			if(pointerAddress >= instructions.length) {			
 				window.console.log('Brainfuck program finished.');
-				isFinished = true;
+				status = STATUSES['STOPPED'];
 			}
 		}
 
@@ -251,8 +270,7 @@ if (!Array.prototype.indexOf) {
 		//to the command after that bracket.
 		//If no matching closing bracket is found, kill execution
 		//TODO: look into making this more efficient if possible
-		function jumpToClosingBracket(halt) {
-			halt = (typeof halt != 'undefined') && halt;
+		function jumpToClosingBracket() {			
 			var depth = 1;
 			var openingBracketPosition = pointerAddress;
 			pointerAddress += 1;
@@ -264,10 +282,7 @@ if (!Array.prototype.indexOf) {
 					case "]":
 						depth -= 1;
 						if(depth == 0) {
-							pointerAddress += 1;
-							if( ! halt) {
-								executeCommand(); 
-							}
+							pointerAddress += 1;							
 							return;
 						}
 						break;
@@ -286,8 +301,8 @@ if (!Array.prototype.indexOf) {
 		// program and sets the pointer to the command after that bracket.
 		// If no matching opening bracket is found, kill execution
 		// TODO: look into making this more efficient if possible
-		function jumpToOpeningBracket(halt) {
-			halt = (typeof halt != 'undefined') && halt;
+		function jumpToOpeningBracket() {
+			
 			var depth = 1;
 			var closingBracketPosition = pointerAddress;
 			pointerAddress -= 1;
@@ -299,10 +314,7 @@ if (!Array.prototype.indexOf) {
 					case "[":
 						depth -= 1;
 						if(depth == 0) {
-							pointerAddress += 1;
-							if( ! halt) {
-								executeCommand(); 
-							}
+							pointerAddress += 1;							
 							return;
 						}
 						break;
@@ -317,83 +329,160 @@ if (!Array.prototype.indexOf) {
 			);
 		}
 
-		function stop() {
+		function cycle() {			
+			var advancePointer = executeCommand();
+			if(advancePointer) {
+				incrementPointer();
+			}
+			switch(status) {
+				case STATUSES['RUN']:
+					throttleInstructionCnt += 1;
+					if(throttleInstructionCnt == THROTTLE_THRESHOLD) {
+						throttleInstructionCnt = 0;
+						delayExecution();
+					}
+					else {
+						cycle();
+					}
+					break;
+
+				case STATUSES['STEPPING']:
+					stepTimeout = setTimeout(function() { 
+							cycle(); 
+						}, 
+						stepDelay
+					);
+					break;
+				
+				case STATUSES['PAUSED']:
+					break;
+
+				case STATUSES['STOPPED']:
+					if(pointerAddress != instructions.length) {
+						pointerAddress = instructions.length;
+					}
+					break;
+			}
+			return;
+		}
+
+		function run() {
+			if(status !== STATUSES['RUN']) {
+				status = STATUSES['RUN'];
+				cycle();
+			}
+		}
+
+		function step() {
+			status = STATUSES['PAUSED'];
+			clearTimeout(throttleTimeout);
+			clearTimeout(stepTimeout);
+			cycle();
+		}
+
+		function slowRun(delay) {
+			status = STATUSES['STEPPING'];
+			stepDelay = delay;
+			clearTimeout(throttleTimeout);
+			clearTimeout(stepTimeout);
+			cycle();
+		}
+
+		function pause() {
+			status = STATUSES['PAUSED'];
+			clearTimeout(throttleTimeout);
+			clearTimeout(stepTimeout);
+		}
+
+		function stop() {			
+			status = STATUSES['STOPPED'];
+			clearTimeout(throttleTimeout);
+			clearTimeout(stepTimeout);
 			ui.resetInput();
+			pointerAddress = instructions.length;
+		}
+
+		function reset() {
+			status = STATUSES['READY'];
+			ui.resetOutput();
+			ui.resetInput();
+			ram.reset();
 			pointerAddress = 0;
+			clearTimeout(throttleTimeout);
+			clearTimeout(stepTimeout);
+		}
+
+		function delayExecution() {
+			throttleTimeout = setTimeout(function() { cycle(); }, 5);
 		}
 
 		//Executes the command where the program pointer is currently pointing
-		function executeCommand(halt) {
-			if( ! isFinished) {
-				//if halt is set and true, pass no next step will be executed after 
-				//program pointer advancing			
-				halt = (typeof halt != 'undefined') && halt;
-				switch(instructions[pointerAddress]) {
-					case ">": //Increment data pointer
-						ram.incPointer();
-						incrementPointer(halt);
-						break;
-					case "<": //Decrement data pointer
-						ram.decPointer();
-						incrementPointer(halt);
-						break;
-					case "+": //Increment value at data pointer
-						ram.incByte();
-						incrementPointer(halt);
-						break;
-					case "-": //Decrement value at data pointer
-						ram.decByte();
-						incrementPointer(halt);
-						break;
-					case ".": //output the character the current byte represents
-						ui.print(ram.readByte());
-						incrementPointer(halt);
-						break;
-					case ",": //Take input and store in current data cell
-						//ram.writeByte as callback function since input will be async
-						ui.input(function(inputByte) {
-							ram.writeByte(inputByte);
-							incrementPointer(halt);
-						});
-						break;
-					case "[": //if current byte == 0, jump to command after matching "]"
-						//otherwise, go to next command
-						if(ram.readByte() === 0x00) {
-							jumpToClosingBracket(halt);
-						}
-						else {
-							incrementPointer(halt);
-						}
-						break;
-					case "]": //if current byte != 0, jump to command after matching "["
-						//otherwise, go to next command
-						if(ram.readByte() !== 0x00) {
-							jumpToOpeningBracket(halt);
-						}
-						else {
-							incrementPointer(halt);
-						}
-						break;
-					default: //Do nothing, just advance program. 
-						//(Occurs when end is reached)
-						incrementPointer(halt);					
-				}
-			}
+		function executeCommand() {			
+			switch(instructions[pointerAddress]) {
+				case ">": //Increment data pointer						
+					ram.incPointer();
+					return true;												
+				case "<": //Decrement data pointer
+					ram.decPointer();
+					return true;						
+				case "+": //Increment value at data pointer
+					ram.incByte();						
+					return true;
+				case "-": //Decrement value at data pointer
+					ram.decByte();						
+					return true;
+				case ".": //output the character the current byte represents
+					ui.print(ram.readByte());
+					return true;
+				case ",": //Take input and store in current data cell
+					//ram.writeByte as callback function since input will be async
+					ui.input(function(inputByte) {
+						ram.writeByte(inputByte);
+						incrementPointer();
+					});
+					return false;
+				case "[": //if current byte == 0, jump to command after matching "]"
+					//otherwise, go to next command
+					if(ram.readByte() === 0x00) {
+						jumpToClosingBracket();
+						return false;
+					}						
+					return true;						
+				case "]": //if current byte != 0, jump to command after matching "["
+					//otherwise, go to next command
+					if(ram.readByte() !== 0x00) {
+						jumpToOpeningBracket();
+						return false;
+					}
+					return true;
+				default: //Do nothing, just advance program. 
+					//(Occurs when end is reached)
+					return true;
+			}		
 		}
 
 		//Interface
 		return {
 			"run": function() { 					
-				executeCommand(false); 
-			},
+				run(); 
+			},			
 			"step": function() {
-				executeCommand(true);
+				step();
+			},
+			"pause": function() {
+				pause();
 			},
 			"stop": function() {
-				executeCommand(true);				
-			},		
-			"isFinished": function() { return isFinished; },	
+				stop();
+			},
+			"autoStep": function(delay) {
+				slowRun(delay);
+			},
+			"reset": function() {
+				reset();
+			},
 			"debug":  {
+				"status": function() { return status; },
 				"getPointerAddress": function() { return pointerAddress; },
 				"getCleanProgram": function() { return instructions; },
 				"memory": ram.debug
@@ -404,9 +493,8 @@ if (!Array.prototype.indexOf) {
 
 		
 	var process = null;
-	var debugInterval = null;
-	var stepper = null;
-	var MEMORY_SIZE = 100;
+	var debugInterval = null;	
+	var MEMORY_SIZE = 512;
 
 
 	function updateProgramPosition() {
@@ -467,22 +555,22 @@ if (!Array.prototype.indexOf) {
 
 	function initializeProcess() {
 		if (process != null) {
-			process.stop();
-			process = null;
+			process.reset();			
 		}
-		clearInterval(stepper);
+		else {
+			process = program(
+				cleanCode(document.getElementById('brainfuck-input').value), 
+				workingMemory(MEMORY_SIZE), //Set desired number of bytes in memory here
+				userInterface()
+			);	
+		}
 		clearInterval(debugInterval);		
-		process = program(
-			cleanCode(document.getElementById('brainfuck-input').value), 
-			workingMemory(MEMORY_SIZE), //Set desired number of bytes in memory here
-			userInterface()
-		);
+		
 		
 		debugInterval = setInterval(function() {
 			updateProgramPosition();
 			updateMemoryTable();
 		}, 100);
-
 
 	}
 
@@ -494,46 +582,50 @@ if (!Array.prototype.indexOf) {
 		document.getElementById('brainfuck-input').value = '';
 	};
 
-	
+	//Run button
 	document.getElementById('brainfuck-run').onclick = function(event) {
 		event.preventDefault();		
-		if(process == null || process.isFinished()) {
+		if(process == null) {
 			initializeProcess();
 		}
 		process.run();			
 	}
 
+	//Step button
 	document.getElementById('brainfuck-step').onclick = function(event) {
 		event.preventDefault();
 		if(process == null) {
 			initializeProcess();
 		}
-		if( ! process.isFinished()) {
-			process.step();	
-		}
-		
+		process.step();		
 	}
 
+	//Step auto button
 	document.getElementById('brainfuck-step-auto').onclick = function(event) {
 		event.preventDefault();
 		if(process == null) {
 			initializeProcess();
 		}
-		clearInterval(stepper);
-		stepper = setInterval(
-			process.step, 
+		process.autoStep(
 			parseInt(document.getElementById('brainfuck-step-interval').value, 10)
-		);
+		);		
 	}
 
+	//(re-)Initialize button
 	document.getElementById('brainfuck-init').onclick = function(event) {
 		event.preventDefault();
 		initializeProcess();				
 	}
 
+	//Pause button
+	document.getElementById('brainfuck-pause').onclick = function(event) {
+		event.preventDefault();		
+		process.pause();
+	}
+
+	//Stop button
 	document.getElementById('brainfuck-stop').onclick = function(event) {
-		event.preventDefault();
-		clearInterval(stepper);
+		event.preventDefault();		
 		process.stop();
 	}
 
