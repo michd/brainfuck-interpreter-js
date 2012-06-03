@@ -557,13 +557,13 @@ if (!Array.prototype.indexOf) {
 		if (process != null) {
 			process.reset();			
 		}
-		else {
-			process = program(
-				cleanCode(document.getElementById('brainfuck-input').value), 
-				workingMemory(MEMORY_SIZE), //Set desired number of bytes in memory here
-				userInterface()
-			);	
-		}
+		
+		process = program(
+			cleanCode(document.getElementById('brainfuck-input').value), 
+			workingMemory(MEMORY_SIZE), //Set desired number of bytes in memory here
+			userInterface()
+		);	
+		
 		clearInterval(debugInterval);		
 		
 		
